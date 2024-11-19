@@ -3,7 +3,8 @@
 #include "functiiVizualizare.h"
 #include <wx/tokenzr.h>
 #include <string>
-#include <svm.h>
+#include "DecisionTreeClassifier.h"
+
 
 wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
     EVT_MENU(wxID_EXIT, MainFrame::OnExit)
@@ -17,6 +18,7 @@ wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
     EVT_MENU(ID_ShowAllIngredients, MainFrame::OnShowAllIngredients)
     EVT_MENU(ID_ShowRecipeDetails, MainFrame::OnShowRecipeDetails)
     EVT_MENU(ID_RecommendedRecipes, MainFrame::OnRecommendRecipes)
+    EVT_BUTTON(ID_ClassifyRecipe, MainFrame::OnClassifyRecipe)
 
 wxEND_EVENT_TABLE()
 
@@ -50,10 +52,12 @@ MainFrame::MainFrame(const wxString& title)
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     searchCtrl = new wxTextCtrl(this, wxID_ANY);
     searchButton = new wxButton(this, wxID_ANY, "Search ingredient");
+    classifyButton = new wxButton(this, ID_ClassifyRecipe, "Classify Recipe");
     listBox = new wxListBox(this, wxID_ANY, wxDefaultPosition, wxSize(800, 400));
 
     sizer->Add(searchCtrl, 0, wxEXPAND | wxALL, 5);
     sizer->Add(searchButton, 0, wxEXPAND | wxALL, 5);
+    sizer->Add(classifyButton, 0, wxEXPAND | wxALL, 5);
     sizer->Add(listBox, 1, wxEXPAND | wxALL, 10);
 
     SetSizer(sizer);
@@ -331,4 +335,67 @@ void MainFrame::OnRecommendRecipes(wxCommandEvent& event) {
         sqlite3_close(db);
         ShowSearchControls(false);
     }
+}
+
+void MainFrame::OnClassifyRecipe(wxCommandEvent& event) {
+    wxLogMessage("Classify Recipe button clicked");
+    int selection = listBox->GetSelection();
+    if (selection == wxNOT_FOUND) {
+        wxMessageBox("No recipe selected", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+    wxString selectedRecipe = listBox->GetString(selection);
+    long recipeId;
+    if (!selectedRecipe.BeforeFirst(',').AfterFirst(':').ToLong(&recipeId)) {
+        wxMessageBox("Invalid recipe ID", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    wxLogMessage("Selected recipe ID: %d", recipeId);
+
+    sqlite3* db = openDatabase("ingrediente.db");
+    if (!db) {
+        wxMessageBox("Failed to open database", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    wxLogMessage("Database opened successfully");
+
+    // Antrenează modelul
+    trainDecisionTreeModel(db);
+    wxLogMessage("Model trained successfully");
+
+    // Clasifică rețeta selectată
+    mlpack::DecisionTree<>tree;
+    mlpack::data::Load("decision_tree_model.xml", "tree", tree);
+
+    map<string, double> nutritionalValues = calculateNutritionalValue(db, recipeId);
+    arma::rowvec sample(4);
+    sample(0) = nutritionalValues["energie_kcal"];
+    sample(1) = nutritionalValues["proteine"];
+    sample(2) = nutritionalValues["carbohidrati"];
+    sample(3) = getRecipeById(db, recipeId).durata_preparare;
+
+    size_t prediction = tree.Classify(sample);
+
+    wxString classificationResult;
+    switch (prediction) {
+        case 0:
+            classificationResult = "Low Calorie";
+            break;
+        case 1:
+            classificationResult = "Low Carb";
+            break;
+        default:
+            classificationResult = "Other";
+            break;
+    }
+
+    wxMessageBox("Recipe is classified as: " + classificationResult, "Classification Result", wxOK | wxICON_INFORMATION);
+    wxLogMessage("Recipe classified successfully");
+
+    classifyRecipe(db, recipeId);
+    wxLogMessage("Recipe classified successfully");
+    sqlite3_close(db);
+    wxLogMessage("Database closed successfully");
 }

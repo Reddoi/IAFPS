@@ -7,7 +7,6 @@
 #include <codecvt>
 #include <cmath>
 #include <unordered_set>
-#include <svm.h>
 
 using namespace std;
 

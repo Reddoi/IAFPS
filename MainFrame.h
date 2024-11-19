@@ -14,6 +14,7 @@ private:
     wxListBox* listBox;
     wxTextCtrl* searchCtrl;
     wxButton* searchButton;
+    wxButton* classifyButton;
     void OnExit(wxCommandEvent& event);
     void OnAbout(wxCommandEvent& event);
     void OnShowRecipes(wxCommandEvent& event);
@@ -28,6 +29,7 @@ private:
     void OnRecommendRecipes(wxCommandEvent& event);
     void OnSearchIngredient(wxCommandEvent& event);
     void ShowSearchControls(bool show);
+    void OnClassifyRecipe(wxCommandEvent& event);
     wxDECLARE_EVENT_TABLE();
 };
 
@@ -41,6 +43,7 @@ enum {
     ID_ShowAllIngredients,
     ID_ShowRecipeDetails,
     ID_RecommendedRecipes,
+    ID_ClassifyRecipe
 };
 
 

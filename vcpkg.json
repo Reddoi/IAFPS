@@ -2,6 +2,7 @@
   "dependencies": [
     "libsvm",
     "sqlite3",
-    "wxwidgets"
+    "wxwidgets",
+    "mlpack"
   ]
 }
