@@ -28,7 +28,7 @@ private:
     void OnShowRecipeDetails(wxCommandEvent& event);
     void OnRecommendRecipes(wxCommandEvent& event);
     void OnSearchIngredient(wxCommandEvent& event);
-    void ShowSearchControls(bool show);
+    void ShowSearchControls(bool show, bool showClassifyButton);
     void OnClassifyRecipe(wxCommandEvent& event);
     wxDECLARE_EVENT_TABLE();
 };

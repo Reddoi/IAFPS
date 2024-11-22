@@ -65,7 +65,7 @@ MainFrame::MainFrame(const wxString& title)
     searchButton->Bind(wxEVT_BUTTON, &MainFrame::OnSearchIngredient, this);
     listBox->Bind(wxEVT_RIGHT_DOWN, &MainFrame::OnRightClick, this);
 
-    ShowSearchControls(false);
+    ShowSearchControls(false, false);
 }
 
 void MainFrame::OnExit(wxCommandEvent& event) {
@@ -75,6 +75,13 @@ void MainFrame::OnExit(wxCommandEvent& event) {
 void MainFrame::OnAbout(wxCommandEvent& event) {
     wxMessageBox("This is a wxWidgets Recipe Manager application",
                  "About Recipe Manager", wxOK | wxICON_INFORMATION);
+}
+
+void MainFrame::ShowSearchControls(bool show, bool showClassifyButton) {
+    searchCtrl->Show(show);
+    searchButton->Show(show);
+    classifyButton->Show(showClassifyButton);
+    this->Layout();
 }
 
 void MainFrame::OnShowRecipes(wxCommandEvent& event) {
@@ -92,13 +99,8 @@ void MainFrame::OnShowRecipes(wxCommandEvent& event) {
     }
 
     sqlite3_close(db);
-    ShowSearchControls(false);
-}
+    ShowSearchControls(false, true);
 
-void MainFrame::ShowSearchControls(bool show) {
-    searchCtrl->Show(show);
-    searchButton->Show(show);
-    Layout();
 }
 
 void MainFrame::OnSearchIngredient(wxCommandEvent& event) {
@@ -148,7 +150,7 @@ void MainFrame::OnSearchRecipe(wxCommandEvent& event) {
             }
             sqlite3_close(db);
         }
-    ShowSearchControls(false);
+    ShowSearchControls(false, true);
     }
 
 void MainFrame::OnFilterByCategory(wxCommandEvent& event) {
@@ -168,7 +170,7 @@ void MainFrame::OnFilterByCategory(wxCommandEvent& event) {
         }
         sqlite3_close(db);
     }
-    ShowSearchControls(false);
+    ShowSearchControls(false, false);
 }
 
 void MainFrame::OnFilterByDiet(wxCommandEvent& event) {
@@ -188,7 +190,7 @@ void MainFrame::OnFilterByDiet(wxCommandEvent& event) {
         }
         sqlite3_close(db);
     }
-    ShowSearchControls(false);
+    ShowSearchControls(false, false);
 }
 
 void MainFrame::OnSortByName(wxCommandEvent& event) {
@@ -205,7 +207,7 @@ void MainFrame::OnSortByName(wxCommandEvent& event) {
         listBox->Append(wxString::Format("ID: %d, Name: %s", reteta.id, reteta.nume));
     }
     sqlite3_close(db);
-    ShowSearchControls(false);
+    ShowSearchControls(false, false);
 }
 
 void MainFrame::OnSortByPreparationTime(wxCommandEvent& event) {
@@ -222,7 +224,7 @@ void MainFrame::OnSortByPreparationTime(wxCommandEvent& event) {
         listBox->Append(wxString::Format("ID: %d, Name: %s, Preparation Time: %d minute", reteta.id, reteta.nume, reteta.durata_preparare));
     }
     sqlite3_close(db);
-    ShowSearchControls(false);
+    ShowSearchControls(false, false);
 }
 
 
@@ -244,7 +246,15 @@ void MainFrame::OnShowAllIngredients(wxCommandEvent& event) {
     }
     sqlite3_close(db);
 
-    ShowSearchControls(true);
+    ShowSearchControls(true, false);
+    if (!searchCtrl) {
+        searchCtrl = new wxTextCtrl(this, wxID_ANY);
+        searchButton = new wxButton(this, wxID_ANY, "Search ingredient");
+        searchButton->Bind(wxEVT_BUTTON, &MainFrame::OnSearchIngredient, this);
+        GetSizer()->Insert(0, searchCtrl, 0, wxEXPAND | wxALL, 5);
+        GetSizer()->Insert(1, searchButton, 0, wxEXPAND | wxALL, 5);
+        this->Layout();
+    }
 }
 
 void MainFrame::OnRightClick(wxMouseEvent& event) {
@@ -333,12 +343,11 @@ void MainFrame::OnRecommendRecipes(wxCommandEvent& event) {
 
 
         sqlite3_close(db);
-        ShowSearchControls(false);
+        ShowSearchControls(false, false);
     }
 }
 
 void MainFrame::OnClassifyRecipe(wxCommandEvent& event) {
-    wxLogMessage("Classify Recipe button clicked");
     int selection = listBox->GetSelection();
     if (selection == wxNOT_FOUND) {
         wxMessageBox("No recipe selected", "Error", wxOK | wxICON_ERROR);
@@ -351,51 +360,31 @@ void MainFrame::OnClassifyRecipe(wxCommandEvent& event) {
         return;
     }
 
-    wxLogMessage("Selected recipe ID: %d", recipeId);
-
     sqlite3* db = openDatabase("ingrediente.db");
     if (!db) {
         wxMessageBox("Failed to open database", "Error", wxOK | wxICON_ERROR);
         return;
     }
 
-    wxLogMessage("Database opened successfully");
-
     // Antrenează modelul
     trainDecisionTreeModel(db);
-    wxLogMessage("Model trained successfully");
 
     // Clasifică rețeta selectată
     mlpack::DecisionTree<>tree;
     mlpack::data::Load("decision_tree_model.xml", "tree", tree);
 
     map<string, double> nutritionalValues = calculateNutritionalValue(db, recipeId);
-    arma::rowvec sample(4);
-    sample(0) = nutritionalValues["energie_kcal"];
-    sample(1) = nutritionalValues["proteine"];
-    sample(2) = nutritionalValues["carbohidrati"];
-    sample(3) = getRecipeById(db, recipeId).durata_preparare;
+    arma::rowvec sample(8);
+    sample(0) = nutritionalValues["energie_kj"];
+    sample(1) = nutritionalValues["energie_kcal"];
+    sample(2) = nutritionalValues["proteine"];
+    sample(3) = nutritionalValues["grasimi_totale"];
+    sample(4) = nutritionalValues["grasimi_saturate"];
+    sample(5) = nutritionalValues["grasimi_nesaturate"];
+    sample(6) = nutritionalValues["carbohidrati"];
+    sample(7) = nutritionalValues["zahar"];
 
-    size_t prediction = tree.Classify(sample);
-
-    wxString classificationResult;
-    switch (prediction) {
-        case 0:
-            classificationResult = "Low Calorie";
-            break;
-        case 1:
-            classificationResult = "Low Carb";
-            break;
-        default:
-            classificationResult = "Other";
-            break;
-    }
-
-    wxMessageBox("Recipe is classified as: " + classificationResult, "Classification Result", wxOK | wxICON_INFORMATION);
-    wxLogMessage("Recipe classified successfully");
 
     classifyRecipe(db, recipeId);
-    wxLogMessage("Recipe classified successfully");
     sqlite3_close(db);
-    wxLogMessage("Database closed successfully");
 }

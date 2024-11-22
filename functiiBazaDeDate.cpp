@@ -300,8 +300,9 @@ map<string, double> calculateNutritionalValue(sqlite3* db, int reteta_id) {
     };
     string sql = "SELECT i.energie_kj, i.energie_kcal, i.proteine, i.grasimi_totale, "
                  "i.grasimi_saturate, i.grasimi_nesaturate, i.carbohidrati, i.zahar, "
-                 "ri.cantitate, ri.unitate_masura FROM ingrediente i "
-                 "JOIN retete_ingrediente ri ON i.id = ri.ingredient_id WHERE ri.reteta_id = ?";
+                 "ri.cantitate, ri.unitate_masura, r.portii FROM ingrediente i "
+                    "JOIN retete_ingrediente ri ON i.id = ri.ingredient_id "
+                    "JOIN retete r ON ri.reteta_id = r.id WHERE ri.reteta_id = ?";
         sqlite3_stmt* stmt;
 
     if(sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
@@ -309,6 +310,8 @@ map<string, double> calculateNutritionalValue(sqlite3* db, int reteta_id) {
         return nutritionalValues;
     }
     sqlite3_bind_int(stmt, 1, reteta_id);
+    int portii = 1;
+
     while(sqlite3_step(stmt) == SQLITE_ROW) {
         double cantitate = sqlite3_column_double(stmt, 8);
         string unitate_masura = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 9));
@@ -323,8 +326,23 @@ map<string, double> calculateNutritionalValue(sqlite3* db, int reteta_id) {
         nutritionalValues["grasimi_nesaturate"] += sqlite3_column_double(stmt, 5) * cantitateInGrame;
         nutritionalValues["carbohidrati"] += sqlite3_column_double(stmt, 6) * cantitateInGrame;
         nutritionalValues["zahar"] += sqlite3_column_double(stmt, 7) * cantitateInGrame;
+
+        portii = sqlite3_column_int(stmt, 10);
     }
     sqlite3_finalize(stmt);
+
+    if (portii > 0) {
+        nutritionalValues["energie_kcal"] /= portii;
+        nutritionalValues["energie_kj"] /= portii;
+        nutritionalValues["proteine"] /= portii;
+        nutritionalValues["grasimi_totale"] /= portii;
+        nutritionalValues["grasimi_saturate"] /= portii;
+        nutritionalValues["grasimi_nesaturate"] /= portii;
+        nutritionalValues["carbohidrati"] /= portii;
+        nutritionalValues["zahar"] /= portii;
+
+    }
+
     return nutritionalValues;
 }
 

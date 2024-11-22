@@ -20,6 +20,8 @@ add_executable(IAFPS_Proiect WIN32 main.cpp
         MainFrame.cpp
         DecisionTreeClassifier.cpp
         DecisionTreeClassifier.h
+        Simplex.h
+        Simplex.cpp
 )
 find_package(wxWidgets CONFIG REQUIRED)
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
