@@ -19,7 +19,7 @@ wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
     EVT_MENU(ID_ShowRecipeDetails, MainFrame::OnShowRecipeDetails)
     EVT_MENU(ID_RecommendedRecipes, MainFrame::OnRecommendRecipes)
     EVT_BUTTON(ID_ClassifyRecipe, MainFrame::OnClassifyRecipe)
-
+    EVT_MENU(ID_ClusterRecipes, MainFrame::OnClusterRecipes)
 wxEND_EVENT_TABLE()
 
 MainFrame::MainFrame(const wxString& title)
@@ -39,6 +39,7 @@ MainFrame::MainFrame(const wxString& title)
     menuActions->Append(ID_SortByPreparationTime, "Sort by Preparation Time");
     menuActions->Append(ID_ShowAllIngredients, "Show All Ingredients");
     menuActions->Append(ID_RecommendedRecipes, "Recommended Recipes");
+    menuActions->Append(ID_ClusterRecipes, "Cluster Recipes");
 
     wxMenuBar *menuBar = new wxMenuBar;
     menuBar->Append(menuFile, "&File");
@@ -387,4 +388,31 @@ void MainFrame::OnClassifyRecipe(wxCommandEvent& event) {
 
     classifyRecipe(db, recipeId);
     sqlite3_close(db);
+}
+
+void MainFrame::OnClusterRecipes(wxCommandEvent& event) {
+    wxTextEntryDialog dialog(this, "Enter the number of clusters (k):", "K-Means Clustering");
+    if (dialog.ShowModal() == wxID_OK) {
+        long k;
+        if (!dialog.GetValue().ToLong(&k) || k <= 0) {
+            wxMessageBox("Invalid number of clusters", "Error", wxOK | wxICON_ERROR);
+            return;
+        }
+
+        sqlite3* db = openDatabase("ingrediente.db");
+        if (!db) {
+            wxMessageBox("Failed to open database", "Error", wxOK | wxICON_ERROR);
+            return;
+        }
+
+        vector<int> clusterAssignments = performKMeansClustering(db, k);
+        vector<Reteta> retete = readRecipes(db);
+
+        listBox->Clear();
+        for (size_t i = 0; i < retete.size(); ++i) {
+            listBox->Append(wxString::Format("ID: %d, Name: %s, Cluster: %d", retete[i].id, retete[i].nume, clusterAssignments[i]));
+        }
+
+        sqlite3_close(db);
+    }
 }

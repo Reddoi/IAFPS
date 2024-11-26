@@ -1,3 +1,4 @@
+#define _HAS_STD_BYTE 0
 #include "functiiBazaDeDate.h"
 #include <iostream>
 #include <algorithm>
@@ -7,7 +8,12 @@
 #include <codecvt>
 #include <cmath>
 #include <unordered_set>
+#include <mlpack/core.hpp>
+#include <mlpack/methods/kmeans/kmeans.hpp>
+#include <armadillo>
+#include <wx/msgdlg.h>
 
+using namespace arma;
 using namespace std;
 
 sqlite3* openDatabase(const string& ingrediente) {
@@ -288,6 +294,7 @@ double getConversionFactor(sqlite3* db, const string& unitate) {
 
 
 map<string, double> calculateNutritionalValue(sqlite3* db, int reteta_id) {
+
     map<string, double> nutritionalValues = {
     {"energie_kj", 0.0},
     {"energie_kcal", 0.0},
@@ -463,4 +470,29 @@ vector<Reteta> recommendRecipesContentBased(sqlite3* db, const UserPreferences& 
     });
 
     return recommendedRecipes;
+}
+
+arma::mat prepareKMeansData(sqlite3* db) {
+    vector<Reteta> retete = readRecipes(db);
+    arma::mat data(5, retete.size()); // 5 features: energie_kcal, proteine, grasimi_totale, carbohidrati, zahar
+
+    for (size_t i = 0; i < retete.size(); ++i) {
+        map<string, double> nutritionalValues = calculateNutritionalValue(db, retete[i].id);
+        data(0, i) = nutritionalValues["energie_kcal"];
+        data(1, i) = nutritionalValues["proteine"];
+        data(2, i) = nutritionalValues["grasimi_totale"];
+        data(3, i) = nutritionalValues["carbohidrati"];
+        data(4, i) = nutritionalValues["zahar"];
+    }
+    return data;
+}
+
+vector<int> performKMeansClustering(sqlite3* db, int k) {
+    arma::mat data = prepareKMeansData(db);
+    arma::Row<size_t> assignments;
+    mlpack::KMeans<> kmeans;
+    kmeans.Cluster(data, k, assignments);
+
+    vector<int> clusterAssignments(assignments.begin(), assignments.end());
+    return clusterAssignments;
 }

@@ -1,8 +1,9 @@
 {
   "dependencies": [
     "libsvm",
+    "mlpack",
     "sqlite3",
     "wxwidgets",
-    "mlpack"
+    "lapack"
   ]
 }

@@ -30,6 +30,7 @@ private:
     void OnSearchIngredient(wxCommandEvent& event);
     void ShowSearchControls(bool show, bool showClassifyButton);
     void OnClassifyRecipe(wxCommandEvent& event);
+    void OnClusterRecipes(wxCommandEvent& event);
     wxDECLARE_EVENT_TABLE();
 };
 
@@ -43,7 +44,8 @@ enum {
     ID_ShowAllIngredients,
     ID_ShowRecipeDetails,
     ID_RecommendedRecipes,
-    ID_ClassifyRecipe
+    ID_ClassifyRecipe,
+    ID_ClusterRecipes
 };
 
 

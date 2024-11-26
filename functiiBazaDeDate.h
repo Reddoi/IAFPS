@@ -12,6 +12,8 @@
 #include <string>
 #include <map>
 #include <svm.h>
+#include <mlpack/core.hpp>
+#include <mlpack/methods/kmeans/kmeans.hpp>
 using namespace std;
 
 sqlite3* openDatabase(const string& ingrediente);
@@ -35,5 +37,8 @@ struct UserPreferences {
 };
 double calculateSimilarity(const vector<string>& recipeIngredients, const vector<string>& userPreferences);
 vector<Reteta> recommendRecipesContentBased(sqlite3* db, const UserPreferences& preferences);
+
+arma::mat prepareKMeansData(sqlite3* db);
+vector<int> performKMeansClustering(sqlite3* db, int k);
 
 #endif //FUNCTIIBAZADEDATE_H
