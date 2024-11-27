@@ -23,45 +23,83 @@ wxBEGIN_EVENT_TABLE(MainFrame, wxFrame)
 wxEND_EVENT_TABLE()
 
 MainFrame::MainFrame(const wxString& title)
-    : wxFrame(NULL, wxID_ANY, title, wxDefaultPosition, wxSize(800, 600)) {
+    : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, wxSize(800, 600)) {
     wxMenu *menuFile = new wxMenu;
     menuFile->Append(wxID_EXIT);
 
     wxMenu *menuHelp = new wxMenu;
     menuHelp->Append(wxID_ABOUT);
 
-    wxMenu *menuActions = new wxMenu;
-    menuActions->Append(ID_ShowRecipes, "Show Recipes");
-    menuActions->Append(ID_SearchRecipe, "Search Recipe");
-    menuActions->Append(ID_FilterByCategory, "Filter by Category");
-    menuActions->Append(ID_FilterByDiet, "Filter by Diet");
-    menuActions->Append(ID_SortByName, "Sort by Name");
-    menuActions->Append(ID_SortByPreparationTime, "Sort by Preparation Time");
-    menuActions->Append(ID_ShowAllIngredients, "Show All Ingredients");
-    menuActions->Append(ID_RecommendedRecipes, "Recommended Recipes");
-    menuActions->Append(ID_ClusterRecipes, "Cluster Recipes");
-
     wxMenuBar *menuBar = new wxMenuBar;
     menuBar->Append(menuFile, "&File");
-    menuBar->Append(menuActions, "&Actions");
     menuBar->Append(menuHelp, "&Help");
+
 
     SetMenuBar(menuBar);
     CreateStatusBar();
     SetStatusText("Welcome to Recipe Manager!");
 
-    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-    searchCtrl = new wxTextCtrl(this, wxID_ANY);
-    searchButton = new wxButton(this, wxID_ANY, "Search ingredient");
-    classifyButton = new wxButton(this, ID_ClassifyRecipe, "Classify Recipe");
-    listBox = new wxListBox(this, wxID_ANY, wxDefaultPosition, wxSize(800, 400));
 
-    sizer->Add(searchCtrl, 0, wxEXPAND | wxALL, 5);
-    sizer->Add(searchButton, 0, wxEXPAND | wxALL, 5);
-    sizer->Add(classifyButton, 0, wxEXPAND | wxALL, 5);
-    sizer->Add(listBox, 1, wxEXPAND | wxALL, 10);
+    wxBoxSizer* mainSizer = new wxBoxSizer(wxHORIZONTAL);
+    wxBoxSizer* buttonSizer = new wxBoxSizer(wxVERTICAL);
+    wxBoxSizer* contentSizer = new wxBoxSizer(wxVERTICAL);
 
-    SetSizer(sizer);
+    wxButton* showRecipesButton = new wxButton(this, ID_ShowRecipes, "Show Recipes");
+    wxButton* searchRecipeButton = new wxButton(this, ID_SearchRecipe, "Search Recipe");
+    wxButton* filterByCategoryButton = new wxButton(this, ID_FilterByCategory, "Filter by Category");
+    wxButton* filterByDietButton = new wxButton(this, ID_FilterByDiet, "Filter by Diet");
+    wxButton* sortByNameButton = new wxButton(this, ID_SortByName, "Sort by Name");
+    wxButton* sortByPreparationTimeButton = new wxButton(this, ID_SortByPreparationTime, "Sort by Preparation Time");
+    wxButton* showAllIngredientsButton = new wxButton(this, ID_ShowAllIngredients, "Show All Ingredients");
+    wxButton* recommendRecipesButton = new wxButton(this, ID_RecommendedRecipes, "Recommended Recipes");
+    wxButton* classifyRecipeButton = new wxButton(this, ID_ClassifyRecipe, "Classify Recipe");
+    wxButton* clusterRecipesButton = new wxButton(this, ID_ClusterRecipes, "Cluster Recipes");
+
+    showRecipesButton->Bind(wxEVT_BUTTON, &MainFrame::OnShowRecipes, this);
+    searchRecipeButton->Bind(wxEVT_BUTTON, &MainFrame::OnSearchRecipe, this);
+    filterByCategoryButton->Bind(wxEVT_BUTTON, &MainFrame::OnFilterByCategory, this);
+    filterByDietButton->Bind(wxEVT_BUTTON, &MainFrame::OnFilterByDiet, this);
+    sortByNameButton->Bind(wxEVT_BUTTON, &MainFrame::OnSortByName, this);
+    sortByPreparationTimeButton->Bind(wxEVT_BUTTON, &MainFrame::OnSortByPreparationTime, this);
+    showAllIngredientsButton->Bind(wxEVT_BUTTON, &MainFrame::OnShowAllIngredients, this);
+    recommendRecipesButton->Bind(wxEVT_BUTTON, &MainFrame::OnRecommendRecipes, this);
+    classifyRecipeButton->Bind(wxEVT_BUTTON, &MainFrame::OnClassifyRecipe, this);
+    clusterRecipesButton->Bind(wxEVT_BUTTON, &MainFrame::OnClusterRecipes, this);
+
+
+    buttonSizer->Add(showRecipesButton, 0, wxEXPAND | wxALL, 5);
+    buttonSizer->Add(searchRecipeButton, 0, wxEXPAND | wxALL, 5);
+    buttonSizer->Add(filterByCategoryButton, 0, wxEXPAND | wxALL, 5);
+    buttonSizer->Add(filterByDietButton, 0, wxEXPAND | wxALL, 5);
+    buttonSizer->Add(sortByNameButton, 0, wxEXPAND | wxALL, 5);
+    buttonSizer->Add(sortByPreparationTimeButton, 0, wxEXPAND | wxALL, 5);
+    buttonSizer->Add(showAllIngredientsButton, 0, wxEXPAND | wxALL, 5);
+    buttonSizer->Add(recommendRecipesButton, 0, wxEXPAND | wxALL, 5);
+    buttonSizer->Add(classifyRecipeButton, 0, wxEXPAND | wxALL, 5);
+    buttonSizer->Add(clusterRecipesButton, 0, wxEXPAND | wxALL, 5);
+
+    wxScrolledWindow* scrolledWindow = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
+    scrolledWindow->SetScrollRate(5, 5);
+    wxBoxSizer* scrolledSizer = new wxBoxSizer(wxVERTICAL);
+
+
+    searchCtrl = new wxTextCtrl(scrolledWindow, wxID_ANY);
+    searchButton = new wxButton(scrolledWindow, wxID_ANY, "Search ingredient");
+    classifyButton = new wxButton(scrolledWindow, ID_ClassifyRecipe, "Classify Recipe");
+    listBox = new wxListBox(scrolledWindow, wxID_ANY, wxDefaultPosition, wxSize(800, 400));
+
+
+    scrolledSizer->Add(searchCtrl, 0, wxEXPAND | wxALL, 5);
+    scrolledSizer->Add(searchButton, 0, wxEXPAND | wxALL, 5);
+    scrolledSizer->Add(classifyButton, 0, wxEXPAND | wxALL, 5);
+    scrolledSizer->Add(listBox, 1, wxEXPAND | wxALL, 10);
+
+    scrolledWindow->SetSizer(scrolledSizer);
+
+    mainSizer->Add(buttonSizer, 0, wxEXPAND | wxALL, 5);
+    mainSizer->Add(scrolledWindow, 1, wxEXPAND | wxALL, 5);
+
+    SetSizer(mainSizer);
 
     searchButton->Bind(wxEVT_BUTTON, &MainFrame::OnSearchIngredient, this);
     listBox->Bind(wxEVT_RIGHT_DOWN, &MainFrame::OnRightClick, this);
